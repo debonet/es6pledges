@@ -4,6 +4,17 @@ Cancellable Promises for Javascript ES6
 
 ## USAGE
 
+Pledges can be used just like Promises, with the addition of 
+the ability to release the pledge from it's obligation, via 
+`resolve()`, `reject()` or `release()`. 
+
+Releasing a pledge results in the execution of a release function 
+that can terminate the work, and settle the underlying Promise.
+
+In the even that the release function cannot terminate the work,
+it can optionally cancel the release and leave all of the pending
+`await`, `then()`, `catch()` handlers in place.
+
 ```javascript
 // a cancellable delay function
 function pledgeDelay( delay ){
@@ -31,7 +42,7 @@ p.reject( "I don't want to wait that long" );
 // rejected: I don't want to wait that long
 ```
 
-##API
+## API
 
 ### new Pledge()
 * `new Pledge ( pledgeFunction, releaseFunction )`
