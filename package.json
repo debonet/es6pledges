@@ -1,0 +1,30 @@
+{
+  "name": "@debonet/es6pledges",
+  "version": "1.0.0",
+  "description": "Cancellable Promises for Javascript ES6",
+  "main": "src/es6pledges.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/debonet/es6pledges.git"
+  },
+  "keywords": [
+    "Pledges",
+    "Cancellable",
+		"Promises",
+    "simple",
+    "clean",
+    "dependency-free"
+  ],
+  "author": "Jeremy De Bonet",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/debonet/es6pledges/issues"
+  },
+  "homepage": "https://github.com/debonet/es6pledges#readme",
+  "devDependencies": {
+    "jest": "^26.6.3"
+	}
+}
