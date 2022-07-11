@@ -201,11 +201,11 @@ test( "allSettled resolve", async () => {
 	
 	expect( x ).toStrictEqual([
     {
-      "status": "fulfilled",
+      "status": "released-fulfilled",
       "value": "faster",
     },
     {
-      "status": "fulfilled",
+      "status": "released-fulfilled",
       "value": "faster",
 		}
 	]);
@@ -222,11 +222,11 @@ test( "allSettled reject", async () => {
 	
 	expect( x ).toStrictEqual([
     {
-      "status": "rejected",
+      "status": "released-rejected",
       "reason": "faster",
     },
     {
-      "status": "rejected",
+      "status": "released-rejected",
       "reason": "faster",
 		}
 	]);

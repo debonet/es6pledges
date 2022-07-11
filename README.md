@@ -1,6 +1,9 @@
 # es6pledges
 
-Cancellable Promises for Javascript ES6
+Releasable Promises for Javascript ES6
+
+
+(also known as "cancellable promises")
 
 ## USAGE
 

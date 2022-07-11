@@ -1,8 +1,13 @@
 {
   "name": "@debonet/es6pledges",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Cancellable Promises for Javascript ES6",
-  "main": "src/es6pledges.js",
+  "main": "./src/es6pledges.js",
+	"exports" : {
+		"." : "./src/es6pledges.js",
+		"./makereleasable" : "./src/fclassReleasable.js",
+		"./fclassReleasable" : "./src/fclassReleasable.js"
+	},
   "scripts": {
     "test": "jest"
   },
