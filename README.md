@@ -100,8 +100,8 @@ _**status, reason, ...extra**_
 
 ### Pledge.prototype.resolve()
 ### Pledge.prototype.fulfill()
-* `pledge.resolve( status, reason, ...extras )`
-* `pledge.fulfill( status, reason, ...extras )`
+* `pledge.resolve( reason, ...extras )`
+* `pledge.fulfill( reason, ...extras )`
 
 shorthand for `pledge.release( true, reason, ...extras )`
 
@@ -112,7 +112,7 @@ shorthand for `pledge.release( true, reason, ...extras )`
 
 
 ### Pledge.prototype.reject()
-* `pledge.reject( status, reason, ...extras )`
+* `pledge.reject( reason, ...extras )`
 
 shorthand for `pledge.release( false, reason, ...extras )`
 
@@ -132,7 +132,7 @@ shorthand for `pledge.release( false, reason, ...extras )`
 ### Pledge.reject()
 ### Pledge.resolve()
 
-These are identical to the `Promieses` equivalent
+These are identical to the `Promises` equivalent
 
 
 
