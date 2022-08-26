@@ -1,5 +1,3 @@
-let cPR = 0;
-
 module.exports = ( classPromise ) => {
 	const Releasable = class extends classPromise {
 		#aSettled;
@@ -7,8 +5,7 @@ module.exports = ( classPromise ) => {
 		// ---------------------------------------------------
 		constructor( f, fRelease ){
 			let fResolve, fReject;
-			const aSettled = { cPR : cPR };
-			cPR++;
+			const aSettled = {};
 
 			super(( fResolveIn, fRejectIn, ...vx ) => {
 				fResolve = ( x ) => {
@@ -30,7 +27,7 @@ module.exports = ( classPromise ) => {
 				writable: true,
 				value : ( bResolve, xStatus, ...vx ) => {
 					if ( aSettled.status ){
-						return;
+						return true;
 					}
 
 					function fbAutoSettle( bCancel ){
@@ -81,25 +78,25 @@ module.exports = ( classPromise ) => {
 		
 		// ---------------------------------------------------
 		then( fThen, fCatch ){
-			const aSettled = {};
+			const aSettled = {  };
 			let fbWaitOnReleaseFunction;
 
 			const fWrapThen = async ( x ) => {
 				// if a release is in progress, wait until we know the outcome
 				if ( fbWaitOnReleaseFunction ){
-					const bReleased = await fbWaitOnReleaseFunction();
-					if ( bReleased && aSettled.status ){
-						return x;
-					}
-					return fThen( x );
+					await fbWaitOnReleaseFunction();
 				}
 				// prevent the launching of any new tasks if released				
-				else if ( aSettled.status ){
+				if ( aSettled.status ){
 					return x;
 				}
-				// not released, not in progress
+				// not released, start it and keep it in case needs to be released
 				else{
-					return fThen( x );
+					const xInternal = fThen( x );
+					if ( xInternal instanceof this.constructor ){
+						aSettled.pInternal = xInternal;
+					}
+					return xInternal;
 				}
 			};
 				
@@ -109,16 +106,20 @@ module.exports = ( classPromise ) => {
 				writable: true,
 				value : async ( bResolve, xStatus, ...vx ) => {
 					if ( aSettled.status ){
-						return;
+						return true;
 					}
 					
 					// set up a waiter to see if the parent wants to stop
 					let fDoneRelease;
 					fbWaitOnReleaseFunction = () => new Promise( f => fDoneRelease = f );
 					const bDoRelease = await this.release( bResolve, xStatus, ...vx );
-					
+
 					// if the parent doesn't cancel, then prevent this one from launching
-					if ( bDoRelease ) { 
+					if ( bDoRelease != false ) {
+						if ( aSettled.pInternal ){
+							aSettled.pInternal.release( bResolve, xStatus, ...vx );
+						}
+						
 						if ( bResolve ){
 							Object.assign( aSettled, { status: 'fulfilled', value: xStatus });
 						}
@@ -155,23 +156,24 @@ module.exports = ( classPromise ) => {
 		static all( vp, ...vx ){
 			const p  = super.all( vp, ...vx );
 			p.release = Releasable.#ffReleaseGroup( vp );
-			return Releasable.race([ p ]);
+			return p;
 		}
 
 		// ---------------------------------------------------
 		static any( vp, ...vx ){
 			const p  = super.any( vp, ...vx );
 			p.release = Releasable.#ffReleaseGroup( vp );
-			return Releasable.race([ p ]);
+			return p;
 		}
 		
 		// ---------------------------------------------------
 		static allSettled( vp, ...vx ){
 			const p  = super.allSettled( vp, ...vx );
+
 			p.release = Releasable.#ffReleaseGroup( vp );
 
 			const pReleaser = new Releasable(
-				()=>{},
+				() => {},
 				( fResolve, fReject, bResolve, x ) => {
 					fResolve(	vp.map(( p ) => {
 						if ( p.aSettled?.status ){
