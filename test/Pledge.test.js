@@ -1,6 +1,5 @@
 const Pledge = require( "../src/es6pledges.js" );
 
-
 function fpPledgeDelay( dtm ){
 	let timeout;
 	return new Pledge(
@@ -26,7 +25,6 @@ function fpPledgeDelayWithDelayedCancel( dtm, sCancel ){
 			);
 		},
 		( fResolve, fReject, b, x ) => {
-			console.log(" releasing timeout", dtm );
 			return new Promise(( fOk ) => {
 				setTimeout(()=>{
 					clearTimeout(timeout);
@@ -73,11 +71,11 @@ test( "simple resolve", async () => {
 
 // --------------------------------------------
 test( "simple then release", async () => {
-	const p1 = fpPledgeDelay( 10000 )
-		.then( x => "resolved1"+ x );
+	const p1 = fpPledgeDelay( 10000 );
 
 	p1.resolve("faster");
-	const s = await	p1;
+	
+	const s = await	p1.then( x => "resolved1" + x );
 	
 	expect( s ).toBe( "resolved1faster" );
 });
@@ -92,6 +90,19 @@ test( "simple catch reject", async () => {
 	
 	expect( s ).toBe( "rejected1faster" );
 });
+
+// --------------------------------------------
+test( "then chains all release", async () => {
+	const p1 = fpPledgeDelay( 10000 )
+		.then( x => "slow completion" + x );
+	
+	p1.resolve("faster");
+	
+	const s = await	p1.then( x => "resolved1" + x );
+	
+	expect( s ).toBe( "resolved1faster" );
+});
+
 
 // --------------------------------------------
 test( "simple then/catch reject", async () => {

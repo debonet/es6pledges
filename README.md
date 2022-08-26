@@ -34,16 +34,50 @@ function pledgeDelay( delay ){
 	);
 }
 
-const p = pledgeDelay( 1000000 )
+const pledge = pledgeDelay( 1000000 )
+
+pledge
 	.then( value => console.log( "resolved:", value ))
 	.catch( reason => console.log("rejected:", reason ));
 	
-p.reject( "I don't want to wait that long" );
+	
+pledge.reject( "I don't want to wait that long" );
 
 // output 
 //
 // rejected: I don't want to wait that long
 ```
+
+## A subtle point
+
+When a chain of pledges is released, ALL of the .then() 
+clauses in the chain are effectively released as well by 
+not running at all.
+
+So, for example:
+
+
+```javascript
+
+const pledge = (
+	pledgeDelay( 1000000 )
+	.then( () => pledgeDelay( 1000000 ))
+	.then( value => console.log( 
+		"You wont see this, because it is released without running "
+	));
+);
+
+pledge.then( value => console.log( "but you will see this:", value ));
+	
+pledge.resolve( "Stopped all the promises in the chain assigned to pledge" );
+
+
+// output 
+//
+// but you will see this: Stopped all the 
+// promises in the chain assigned to pledge
+
+```	
 
 ## API
 

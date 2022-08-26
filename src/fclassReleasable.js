@@ -1,3 +1,5 @@
+let cPR = 0;
+
 module.exports = ( classPromise ) => {
 	const Releasable = class extends classPromise {
 		#aSettled;
@@ -5,7 +7,8 @@ module.exports = ( classPromise ) => {
 		// ---------------------------------------------------
 		constructor( f, fRelease ){
 			let fResolve, fReject;
-			const aSettled = {};
+			const aSettled = { cPR : cPR };
+			cPR++;
 
 			super(( fResolveIn, fRejectIn, ...vx ) => {
 				fResolve = ( x ) => {
@@ -16,17 +19,16 @@ module.exports = ( classPromise ) => {
 					Object.assign( aSettled, { status: 'rejected', reason: x });
 					fRejectIn( x );
 				};
-				
+
 				f( fResolve, fReject, ...vx );
 			});
 
 			this.#aSettled = aSettled;
 			let self = this;
-
 			
 			Object.defineProperty( this, 'release', {
 				writable: true,
-				value : function release( bResolve, xStatus, ...vx ) {
+				value : ( bResolve, xStatus, ...vx ) => {
 					if ( aSettled.status ){
 						return;
 					}
@@ -49,6 +51,7 @@ module.exports = ( classPromise ) => {
 
 					if ( fRelease ){
 						let xCancel = fRelease( fResolve, fReject, bResolve, xStatus, ...vx );
+
 						if ( xCancel instanceof Promise ){
 							return xCancel.then( fbAutoSettle );
 						}
@@ -59,7 +62,6 @@ module.exports = ( classPromise ) => {
 					return Promise.resolve( fbAutoSettle( false ));
 				}
 			});
-			
 			
 			return this;
 		}
@@ -78,10 +80,63 @@ module.exports = ( classPromise ) => {
 		}
 		
 		// ---------------------------------------------------
-		then( ...vx ){
-			const p =  super.then( ...vx );
-			p.release = this.release;
-			p.aSettled = this.#aSettled;
+		then( fThen, fCatch ){
+			const aSettled = {};
+			let fbWaitOnReleaseFunction;
+
+			const fWrapThen = async ( x ) => {
+				// if a release is in progress, wait until we know the outcome
+				if ( fbWaitOnReleaseFunction ){
+					const bReleased = await fbWaitOnReleaseFunction();
+					if ( bReleased && aSettled.status ){
+						return x;
+					}
+					return fThen( x );
+				}
+				// prevent the launching of any new tasks if released				
+				else if ( aSettled.status ){
+					return x;
+				}
+				// not released, not in progress
+				else{
+					return fThen( x );
+				}
+			};
+				
+			const p = super.then(	fThen ? fWrapThen : undefined, fCatch );
+
+			Object.defineProperty( p, 'release', {
+				writable: true,
+				value : async ( bResolve, xStatus, ...vx ) => {
+					if ( aSettled.status ){
+						return;
+					}
+					
+					// set up a waiter to see if the parent wants to stop
+					let fDoneRelease;
+					fbWaitOnReleaseFunction = () => new Promise( f => fDoneRelease = f );
+					const bDoRelease = await this.release( bResolve, xStatus, ...vx );
+					
+					// if the parent doesn't cancel, then prevent this one from launching
+					if ( bDoRelease ) { 
+						if ( bResolve ){
+							Object.assign( aSettled, { status: 'fulfilled', value: xStatus });
+						}
+						else{
+							Object.assign( aSettled, { status: 'rejected', reason: xStatus });
+						}
+					}
+
+					// release the internal function
+					if ( fDoneRelease ){
+						fDoneRelease( bDoRelease );
+					}
+					fbWaitOnReleaseFunction = undefined;
+
+					return bDoRelease;
+				}
+			});
+			
 			return p;
 		}
 
