@@ -40,7 +40,7 @@ pledge
 	.then( value => console.log( "resolved:", value ))
 	.catch( reason => console.log("rejected:", reason ));
 	
-	
+
 pledge.reject( "I don't want to wait that long" );
 
 // output 
@@ -54,7 +54,11 @@ When a chain of pledges is released, ALL of the .then()
 clauses in the chain are effectively released as well by 
 not running at all.
 
-So, for example:
+Notice in the example above we rejected the original pledge, not the
+derived .then().catch() items, so that the .catch() didn't also get
+released.
+
+Here's another example:
 
 
 ```javascript

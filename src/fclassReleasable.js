@@ -81,26 +81,30 @@ module.exports = ( classPromise ) => {
 			const aSettled = {  };
 			let fbWaitOnReleaseFunction;
 
-			const fWrapThen = async ( x ) => {
+			const ffWrap = ( fDo, fSkip ) => async ( x ) => {
 				// if a release is in progress, wait until we know the outcome
 				if ( fbWaitOnReleaseFunction ){
 					await fbWaitOnReleaseFunction();
 				}
 				// prevent the launching of any new tasks if released				
 				if ( aSettled.status ){
-					return x;
+					return fSkip( x );
 				}
 				// not released, start it and keep it in case needs to be released
 				else{
-					const xInternal = fThen( x );
+					const xInternal = fDo( x );
 					if ( xInternal instanceof this.constructor ){
 						aSettled.pInternal = xInternal;
 					}
 					return xInternal;
 				}
 			};
-				
-			const p = super.then(	fThen ? fWrapThen : undefined, fCatch );
+
+			const fReject = this.constructor.reject.bind( this.constructor );
+			const p = super.then(
+				fThen ? ffWrap( fThen, x => x ) : undefined,
+				fCatch ? ffWrap( fCatch, fReject ) : undefined
+			);
 
 			Object.defineProperty( p, 'release', {
 				writable: true,

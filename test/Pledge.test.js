@@ -86,9 +86,11 @@ test( "simple catch reject", async () => {
 		.catch( x => "rejected1"+ x );
 
 	p1.reject("faster");
-	const s = await	p1;
+
+	const p2 = p1.catch( x => "whole chain " + x );
+	const s = await p2;
 	
-	expect( s ).toBe( "rejected1faster" );
+	expect( s ).toBe( "whole chain faster" );
 });
 
 // --------------------------------------------
@@ -111,9 +113,11 @@ test( "simple then/catch reject", async () => {
 		.catch( x => "rejected1"+ x );
 
 	p1.reject("faster");
-	const s = await	p1;
+
+	const p2 = p1.catch( x => "whole chain " + x );
+	const s = await p2;
 	
-	expect( s ).toBe( "rejected1faster" );
+	expect( s ).toBe( "whole chain faster" );
 });
 
 // --------------------------------------------
@@ -126,8 +130,8 @@ test( "all resolve", async () => {
 	
 	pBatch.resolve("faster");
 	const s = await	pBatch;
-	
-	expect( s ).toBe( "resolvedBatchfaster" );
+
+	expect( s ).toStrictEqual( [ "faster", "faster" ] );
 });
 
 // --------------------------------------------
@@ -139,9 +143,10 @@ test( "all reject", async () => {
 		.catch( x => "rejectedBatch"+ x );
 
 	pBatch.reject("faster");
-	const s = await	pBatch;
+	const s = await	pBatch.catch( x => x );
+
 	
-	expect( s ).toBe( "rejectedBatchfaster" );
+	expect( s ).toStrictEqual( "faster" );
 });
 
 // --------------------------------------------
@@ -184,7 +189,7 @@ test( "race resolve", async () => {
 	pBatch.resolve("faster");
 	const s = await	pBatch;
 	
-	expect( s ).toBe( "resolvedBatchfaster" );
+	expect( s ).toBe( "faster" );
 });
 
 // --------------------------------------------
@@ -196,9 +201,9 @@ test( "race reject", async () => {
 		.catch( x => "rejectedBatch"+ x );
 
 	pBatch.reject("faster");
-	const s = await	pBatch;
+	const s = await	pBatch.catch( x => x );
 	
-	expect( s ).toBe( "rejectedBatchfaster" );
+	expect( s ).toBe( "faster" );
 });
 
 // --------------------------------------------
