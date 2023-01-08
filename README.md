@@ -25,7 +25,7 @@ function pledgeDelay( delay ){
 	return new Pledge(
 		// this is the normal promise function
 		( resolve, reject ) => {
-			timeout = setTimeout( resolve, dtm );
+			timeout = setTimeout( resolve, delay );
 		},
 		// this is a release/cancellation function
 		() => {
@@ -35,12 +35,9 @@ function pledgeDelay( delay ){
 }
 
 const pledge = pledgeDelay( 1000000 )
-
-pledge
 	.then( value => console.log( "resolved:", value ))
 	.catch( reason => console.log("rejected:", reason ));
 	
-
 pledge.reject( "I don't want to wait that long" );
 
 // output 
@@ -50,13 +47,12 @@ pledge.reject( "I don't want to wait that long" );
 
 ## A subtle point
 
-When a chain of pledges is released, ALL of the .then() 
-clauses in the chain are effectively released as well by 
-not running at all.
+When a chain of pledges is released, ALL of the .then() clauses in 
+the chain also get released.
 
-Notice in the example above we rejected the original pledge, not the
-derived .then().catch() items, so that the .catch() didn't also get
-released.
+Notice in the example above we rejected the pledge, the .catch() ran.
+
+This also works in general, where then() causes are all resolved.
 
 Here's another example:
 
@@ -67,19 +63,17 @@ const pledge = (
 	pledgeDelay( 1000000 )
 	.then( () => pledgeDelay( 1000000 ))
 	.then( value => console.log( 
-		"You wont see this, because it is released without running "
-	));
+		"You will see this, because it is called immediately when we", value
+	))
 );
 
-pledge.then( value => console.log( "but you will see this:", value ));
-	
-pledge.resolve( "Stopped all the promises in the chain assigned to pledge" );
+pledge.resolve( "release the entire pledge chain" );
 
 
 // output 
 //
-// but you will see this: Stopped all the 
-// promises in the chain assigned to pledge
+// You will see this, because it is called immediately when we release 
+// the entire pledge chain
 
 ```	
 
