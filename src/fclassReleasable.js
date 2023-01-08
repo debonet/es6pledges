@@ -86,18 +86,11 @@ module.exports = ( classPromise ) => {
 				if ( fbWaitOnReleaseFunction ){
 					await fbWaitOnReleaseFunction();
 				}
-				// prevent the launching of any new tasks if released				
-				if ( aSettled.status ){
-					return fSkip( x );
+				const xInternal = fDo( x );
+				if ( xInternal instanceof this.constructor ){
+					aSettled.pInternal = xInternal;
 				}
-				// not released, start it and keep it in case needs to be released
-				else{
-					const xInternal = fDo( x );
-					if ( xInternal instanceof this.constructor ){
-						aSettled.pInternal = xInternal;
-					}
-					return xInternal;
-				}
+				return xInternal;
 			};
 
 			const fReject = this.constructor.reject.bind( this.constructor );

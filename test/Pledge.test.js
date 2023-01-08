@@ -83,26 +83,26 @@ test( "simple then release", async () => {
 // --------------------------------------------
 test( "simple catch reject", async () => {
 	const p1 = fpPledgeDelay( 10000 )
-		.catch( x => "rejected1"+ x );
+		.catch( x => "first catch runs "+ x );
 
 	p1.reject("faster");
 
-	const p2 = p1.catch( x => "whole chain " + x );
+	const p2 = p1.catch( x => "later catch does not run " + x );
 	const s = await p2;
 	
-	expect( s ).toBe( "whole chain faster" );
+	expect( s ).toBe( "first catch runs faster" );
 });
 
 // --------------------------------------------
 test( "then chains all release", async () => {
 	const p1 = fpPledgeDelay( 10000 )
-		.then( x => "slow completion" + x );
+		.then( x => "first then, " + x );
 	
 	p1.resolve("faster");
 	
-	const s = await	p1.then( x => "resolved1" + x );
+	const s = await	p1.then( x => "second then, " + x );
 	
-	expect( s ).toBe( "resolved1faster" );
+	expect( s ).toBe( "second then, first then, faster" );
 });
 
 
@@ -110,14 +110,14 @@ test( "then chains all release", async () => {
 test( "simple then/catch reject", async () => {
 	const p1 = fpPledgeDelay( 10000 )
 		.then( x => "resolved1"+ x )
-		.catch( x => "rejected1"+ x );
+		.catch( x => "first catch runs "+ x );
 
 	p1.reject("faster");
 
-	const p2 = p1.catch( x => "whole chain " + x );
+	const p2 = p1.catch( x => "later catch does not run " + x );
 	const s = await p2;
 	
-	expect( s ).toBe( "whole chain faster" );
+	expect( s ).toBe( "first catch runs faster" );
 });
 
 // --------------------------------------------
@@ -125,13 +125,13 @@ test( "all resolve", async () => {
 	const p1 = fpPledgeDelay( 10000 );
 	const p2 = fpPledgeDelay( 10000 );
 	const pBatch = Pledge.all([ p1, p2 ])
-		.then( x => "resolvedBatch"+ x )
-		.catch( x => "rejectedBatch"+ x );
+		.then( x => { return { resolvedBatch : x }})
+		.catch( x => { return { rejectedBatch : x }})
 	
 	pBatch.resolve("faster");
 	const s = await	pBatch;
 
-	expect( s ).toStrictEqual( [ "faster", "faster" ] );
+	expect( s ).toStrictEqual({ resolvedBatch : [ "faster" , "faster" ]});
 });
 
 // --------------------------------------------
@@ -139,14 +139,13 @@ test( "all reject", async () => {
 	const p1 = fpPledgeDelay( 10000 );
 	const p2 = fpPledgeDelay( 10000 );
 	const pBatch = Pledge.all([ p1, p2 ])
-		.then( x => "resolvedBatch"+ x )
-		.catch( x => "rejectedBatch"+ x );
-
+		.then( x => { return { resolvedBatch : x }})
+		.catch( x => { return { rejectedBatch : x }})
+	
 	pBatch.reject("faster");
 	const s = await	pBatch.catch( x => x );
 
-	
-	expect( s ).toStrictEqual( "faster" );
+	expect( s ).toStrictEqual({ rejectedBatch : "faster" });
 });
 
 // --------------------------------------------
@@ -154,28 +153,30 @@ test( "any resolve", async () => {
 	const p1 = fpPledgeDelay( 10000 );
 	const p2 = fpPledgeDelay( 10000 );
 	const pBatch = Pledge.any([ p1, p2 ])
-		.then( x => "resolvedBatch"+ x )
-		.catch( x => "rejectedBatch"+ x );
+		.then( x => { return { resolvedBatch : x }})
+		.catch( x => { return { rejectedBatch : x }})
 	
 	p1.resolve("faster");
+
 	const s = await	pBatch;
-	
-	expect( s ).toBe( "resolvedBatchfaster" );
+
+	expect( s ).toStrictEqual({ resolvedBatch : "faster" });
+
 });
 
 // --------------------------------------------
-test( "any reject", async () => {
+test( "any but all rejected", async () => {
 	const p1 = fpPledgeDelay( 10000 );
 	const p2 = fpPledgeDelay( 10000 );
 	const pBatch = Pledge.any([ p1, p2 ])
-		.then( x => "resolvedBatch"+ x )
-		.catch( x => "rejectedBatch"+ x );
+		.then( x => "resolvedBatch:"+ x )
+		.catch( x => "rejectedBatch:"+ x );
 
 	p2.reject("faster");
 	p1.reject("faster");
 	const s = await	pBatch;
 	
-	expect( s ).toBe( "rejectedBatchAggregateError: All promises were rejected" );
+	expect( s ).toBe( "rejectedBatch:AggregateError: All promises were rejected" );
 });
 
 // --------------------------------------------
@@ -183,13 +184,13 @@ test( "race resolve", async () => {
 	const p1 = fpPledgeDelay( 10000 );
 	const p2 = fpPledgeDelay( 10000 );
 	const pBatch = Pledge.race([ p1, p2 ])
-		.then( x => "resolvedBatch"+ x )
-		.catch( x => "rejectedBatch"+ x );
+		.then( x => { return { resolvedBatch : x }})
+		.catch( x => { return { rejectedBatch : x }})
 	
 	pBatch.resolve("faster");
 	const s = await	pBatch;
 	
-	expect( s ).toBe( "faster" );
+	expect( s ).toStrictEqual({ resolvedBatch : "faster" });
 });
 
 // --------------------------------------------
@@ -197,13 +198,13 @@ test( "race reject", async () => {
 	const p1 = fpPledgeDelay( 10000 );
 	const p2 = fpPledgeDelay( 10000 );
 	const pBatch = Pledge.race([ p1, p2 ])
-		.then( x => "resolvedBatch"+ x )
-		.catch( x => "rejectedBatch"+ x );
-
-	pBatch.reject("faster");
-	const s = await	pBatch.catch( x => x );
+		.then( x => { return { resolvedBatch : x }})
+		.catch( x => { return { rejectedBatch : x }})
 	
-	expect( s ).toBe( "faster" );
+	pBatch.reject("faster");
+	const s = await	pBatch;
+	
+	expect( s ).toStrictEqual({ rejectedBatch : "faster" });
 });
 
 // --------------------------------------------
