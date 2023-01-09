@@ -22,7 +22,9 @@ module.exports = ( classPromise ) => {
 							const pxIn = ( xIn instanceof Promise ) ? xIn : Promise.resolve( xIn );
 							const pxOut = ( xOut instanceof Promise ) ? xOut : Promise.resolve( xOut );
 
-							Promise.all([ pxIn, pxOut ]).then(() => aSettled.bFinished = true );
+							Promise.all([ pxIn, pxOut ])
+								.then(() => aSettled.bFinished = true )
+								.catch(() => aSettled.bFinished = true )
 
 							return xOut;
 						}
