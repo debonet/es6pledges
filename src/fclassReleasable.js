@@ -1,3 +1,5 @@
+"use strict";
+
 module.exports = ( classPromise ) => {
 	const Releasable = class extends classPromise {
 		#aSettled;
@@ -10,18 +12,25 @@ module.exports = ( classPromise ) => {
 			const aSettled = {};
 
 			super(( fResolveIn, fRejectIn, ...vx ) => {
-				fResolve = ( x ) => {
-					if (! aSettled.status ){
-						Object.assign( aSettled, { status: 'fulfilled', value: x });
-						return fResolveIn( x );
+				const ffHandle = ( sStatus, fIn ) => {
+					return ( xIn ) => {
+						if (! aSettled.status ){
+							aSettled.status = sStatus;
+							aSettled.valueIn = xIn;
+							const xOut = fIn( xIn );
+							
+							const pxIn = ( xIn instanceof Promise ) ? xIn : Promise.resolve( xIn );
+							const pxOut = ( xOut instanceof Promise ) ? xOut : Promise.resolve( xOut );
+
+							Promise.all([ pxIn, pxOut ]).then(() => aSettled.bFinished = true );
+
+							return xOut;
+						}
 					}
-				};
-				fReject = ( x ) => {
-					if (! aSettled.status ){
-						Object.assign( aSettled, { status: 'rejected', reason: x });
-						fRejectIn( x );
-					}
-				};
+				}
+				
+				fResolve = ffHandle( "resolved", fResolveIn );
+				fReject = ffHandle( "rejected", fRejectIn );
 
 				f( fResolve, fReject, ...vx );
 			});
@@ -36,6 +45,10 @@ module.exports = ( classPromise ) => {
 					return true;
 				}
 
+				if ( this.#aSettled.pSub ){
+					this.this.#aSettled.pSub.release( bResolve, xStatus, ...vx );
+				}
+				
 				const fbAutoSettle = ( bCancel ) => {
 					if ( bCancel ){
 						return this.#aSettled.status ? true : false;
@@ -91,14 +104,19 @@ module.exports = ( classPromise ) => {
 		
 		// ---------------------------------------------------
 		then( fThen, fCatch ){
-			let bReleased;
 			let vxReleaseArgs = [];
-			
+
 			const ffWrap = ( f ) => {
 				return ( ...vx ) => {
 					const pSub = f( ...vx );
-					if ( bReleased && pSub?.release ){
-						pSub.release( ...vxReleaseArgs );
+
+					if ( pSub instanceof Releasable ){
+						if ( this.#aSettled.bReleased ){
+							pSub.release( ...vxReleaseArgs );
+						}
+						else{
+							p.#aSettled.pSub = pSub;
+						}
 					}
 					return pSub;
 				}
@@ -112,16 +130,29 @@ module.exports = ( classPromise ) => {
 			Object.defineProperty( p, 'release', {
 				writable: true,
 				value : async ( ...vxReleaseArgsIn ) => {
-					vxReleaseArgs = vxReleaseArgsIn;
-					// if any child is resolved while the parent is being released
-					// assume it is because of the release
-					bReleased = true;
-					// tell the parent to release
-					const bDoRelease = await this.release( ...vxReleaseArgsIn );
-					// if the children did not get resolved during the parents release
-					// then they should release only if the parent says its ok
-					bReleased = bDoRelease;
-					return bDoRelease;
+					// if parent was already released
+					if ( this.#aSettled.bFinished ){
+						if ( p.#aSettled.pSub ){
+							p.#aSettled.pSub.#fDoRelease( ...vxReleaseArgsIn );
+						}
+						p.#fDoRelease( ...vxReleaseArgsIn );
+
+						return true;
+					}
+					
+					// try releasing parent, then allow child to be released
+					else{	
+						vxReleaseArgs = vxReleaseArgsIn;
+						// if any child is resolved while the parent is being released
+						// assume it is because of the release
+						this.#aSettled.bReleased = true;
+						// tell the parent to release
+						const bDoRelease = await this.release( ...vxReleaseArgsIn );
+						// if the children did not get resolved during the parents release
+						// then they should release only if the parent says its ok
+						this.#aSettled.bReleased = bDoRelease;
+						return bDoRelease;
+					}
 				}
 			});
 			
