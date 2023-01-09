@@ -129,13 +129,16 @@ module.exports = ( classPromise ) => {
 		}
 
 		// ---------------------------------------------------
-		static #ffReleaseGroup( vp ){
-			return ( bResolve, x ) => {
-				vp.forEach( p => {
-					if ( p.release ) {
-						p.release( bResolve, x );
+		static #ffReleaseGroup( vpGroup ){
+			return ( ...vx ) => {
+				let bAllReleased = true;
+				vpGroup.forEach( pGroup => {
+					if ( pGroup.release ) {
+						bAllReleased = pGroup.release( ...vx ) && bAllReleased;
 					}
 				});
+
+				return bAllReleased;
 			}
 		}
 		
