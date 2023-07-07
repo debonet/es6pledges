@@ -135,7 +135,7 @@ module.exports = ( classPromise ) => {
 					// if parent was already released
 					if ( this.#aSettled.bFinished ){
 						if ( p.#aSettled.pSub ){
-							p.#aSettled.pSub.#fDoRelease( ...vxReleaseArgsIn );
+							p.#aSettled.pSub.release( ...vxReleaseArgsIn );
 						}
 						p.#fDoRelease( ...vxReleaseArgsIn );
 
